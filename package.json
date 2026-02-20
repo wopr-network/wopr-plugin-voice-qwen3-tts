@@ -1,6 +1,6 @@
 {
   "author": "",
-  "description": "WOPR TTS plugin for VibeVoice (OpenAI-compatible)",
+  "description": "WOPR TTS plugin for Qwen3-TTS (OpenAI-compatible)",
   "devDependencies": {
     "@biomejs/biome": "^2.3.14",
     "@types/node": "^25.1.0",
@@ -11,13 +11,13 @@
     "wopr",
     "plugin",
     "tts",
-    "vibevoice",
+    "qwen3",
     "voice",
     "speech"
   ],
   "license": "MIT",
   "main": "dist/index.js",
-  "name": "wopr-plugin-voice-vibevoice",
+  "name": "wopr-plugin-voice-qwen3-tts",
   "scripts": {
     "build": "tsc",
     "check": "biome check src/ && tsc --noEmit",

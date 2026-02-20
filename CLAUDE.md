@@ -1,6 +1,6 @@
-# wopr-plugin-voice-vibevoice
+# wopr-plugin-voice-qwen3-tts
 
-TTS plugin for Microsoft VibeVoice — a self-hosted, OpenAI-compatible TTS server.
+TTS plugin for Qwen3-TTS — a self-hosted, OpenAI-compatible TTS server by Alibaba Cloud.
 
 ## Commands
 
@@ -14,12 +14,18 @@ npm test          # vitest run
 ## Key Details
 
 - Implements the `tts` capability provider from `@wopr-network/plugin-types`
-- VibeVoice is OpenAI-compatible — uses the `/v1/audio/speech` endpoint
-- Self-hosted: user runs VibeVoice locally or on their own server. No API key required by default.
-- Config: `serverUrl` (e.g. `http://localhost:8881`), `voice`, `model`, `speed`
-- Available voices: alloy, echo, fable, onyx, nova, shimmer
-- Available models: tts-1, tts-1-hd
-- **Use case**: Free/local TTS alternative to hosted providers
+- Qwen3-TTS is OpenAI-compatible — uses the `/v1/audio/speech` endpoint
+- Self-hosted: user runs Qwen3-TTS locally or on their own server. No API key required by default.
+- Config: `serverUrl` (e.g. `http://localhost:8880`), `voice`, `model`
+- Features: voice cloning (3-second ref), voice design, multilingual (10+ languages), ultra-low latency (97ms)
+- **Use case**: Free/local TTS alternative to ElevenLabs
+
+## Docker
+
+```bash
+# Run Qwen3-TTS server
+docker run -d --gpus all -p 8880:8880 groxaxo/qwen3-tts-openai-fastapi:latest
+```
 
 ## Plugin Contract
 
@@ -27,4 +33,4 @@ Imports only from `@wopr-network/plugin-types`. Never import from `@wopr-network
 
 ## Issue Tracking
 
-All issues in **Linear** (team: WOPR). Issue descriptions start with `**Repo:** wopr-network/wopr-plugin-voice-vibevoice`.
+All issues in **Linear** (team: WOPR). Issue descriptions start with `**Repo:** wopr-network/wopr-plugin-voice-qwen3-tts`.

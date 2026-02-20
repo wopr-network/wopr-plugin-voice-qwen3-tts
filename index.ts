@@ -1,10 +1,10 @@
 /**
- * WOPR Voice Plugin: VibeVoice TTS
+ * WOPR Voice Plugin: Qwen3-TTS
  *
- * Connects to VibeVoice TTS server via HTTP API.
- * Supports multiple voices and high-quality speech synthesis.
+ * Connects to Qwen3-TTS server via OpenAI-compatible HTTP API.
+ * Supports voice cloning, voice design, and multilingual synthesis.
  *
- * Docker: valyriantech/vibevoice_server
+ * Docker: groxaxo/qwen3-tts-openai-fastapi
  */
 
 interface TTSSynthesisResult {
@@ -66,16 +66,16 @@ interface WOPRPluginContext {
   registerTTSProvider: (provider: TTSProvider) => void;
 }
 
-interface VibeVoiceConfig {
+interface Qwen3Config {
   serverUrl?: string;
   voice?: string;
-  speed?: number;
+  model?: string;
 }
 
-const DEFAULT_CONFIG: Required<VibeVoiceConfig> = {
-  serverUrl: process.env.VIBEVOICE_URL || "http://vibevoice-tts:8881",
-  voice: process.env.VIBEVOICE_VOICE || "default",
-  speed: parseFloat(process.env.VIBEVOICE_SPEED || "1.0"),
+const DEFAULT_CONFIG: Required<Qwen3Config> = {
+  serverUrl: process.env.QWEN3_URL || "http://qwen3-tts:8880",
+  voice: process.env.QWEN3_VOICE || "af_sarah",
+  model: process.env.QWEN3_MODEL || "qwen-tts",
 };
 
 function parseWavSampleRate(buffer: Buffer): number {
@@ -108,25 +108,28 @@ function wavToPcm(wavBuffer: Buffer): { pcm: Buffer; sampleRate: number } {
   };
 }
 
-class VibeVoiceProvider implements TTSProvider {
+class Qwen3Provider implements TTSProvider {
   readonly metadata: VoicePluginMetadata = {
-    name: "vibevoice",
+    name: "qwen3-tts",
     version: "1.0.0",
     type: "tts",
-    description: "Microsoft VibeVoice TTS",
-    capabilities: ["voice-selection", "speed-control", "voice-cloning"],
+    description: "Qwen3-TTS by Alibaba Cloud",
+    capabilities: ["voice-selection", "voice-cloning", "voice-design", "multilingual"],
     local: true,
-    emoji: "🎤",
+    emoji: "🧠",
   };
 
   readonly voices: Voice[] = [
-    { id: "default", name: "Default", language: "en", gender: "neutral" },
+    { id: "af_sarah", name: "Sarah", language: "en", gender: "female" },
+    { id: "am_michael", name: "Michael", language: "en", gender: "male" },
+    { id: "bf_emma", name: "Emma", language: "en", gender: "female" },
+    { id: "bm_daniel", name: "Daniel", language: "en", gender: "male" },
   ];
 
-  private config: Required<VibeVoiceConfig>;
+  private config: Required<Qwen3Config>;
   private dynamicVoices: Voice[] = [];
 
-  constructor(config: VibeVoiceConfig = {}) {
+  constructor(config: Qwen3Config = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
   }
 
@@ -140,7 +143,7 @@ class VibeVoiceProvider implements TTSProvider {
     try {
       const response = await fetch(`${this.config.serverUrl}/v1/voices`, {
         method: "GET",
-        signal: AbortSignal.timeout(5000),
+        signal: AbortSignal.timeout(3000),
       });
 
       if (response.ok) {
@@ -163,51 +166,26 @@ class VibeVoiceProvider implements TTSProvider {
   async synthesize(text: string, options?: TTSOptions): Promise<TTSSynthesisResult> {
     const startTime = Date.now();
     const voice = options?.voice || this.config.voice;
-    const speed = options?.speed || this.config.speed;
 
-    const params = new URLSearchParams({
-      text,
-      speed: speed.toString(),
+    const requestBody = {
+      input: text,
+      voice: voice,
+      model: this.config.model,
+      response_format: "wav",
+    };
+
+    const response = await fetch(`${this.config.serverUrl}/v1/audio/speech`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(requestBody),
+      signal: AbortSignal.timeout(3000),
     });
-
-    if (voice && voice !== "default") {
-      params.set("voice", voice);
-      const response = await fetch(
-        `${this.config.serverUrl}/synthesize_speech/?${params}`,
-        {
-          method: "GET",
-          signal: AbortSignal.timeout(60000),
-        }
-      );
-
-      if (!response.ok) {
-        const error = await response.text();
-        throw new Error(`VibeVoice TTS error: ${response.status} - ${error}`);
-      }
-
-      const arrayBuffer = await response.arrayBuffer();
-      const wavBuffer = Buffer.from(arrayBuffer);
-      const { pcm, sampleRate } = wavToPcm(wavBuffer);
-
-      return {
-        audio: pcm,
-        format: "pcm_s16le",
-        sampleRate,
-        durationMs: Date.now() - startTime,
-      };
-    }
-
-    const response = await fetch(
-      `${this.config.serverUrl}/base_tts/?${params}`,
-      {
-        method: "GET",
-        signal: AbortSignal.timeout(60000),
-      }
-    );
 
     if (!response.ok) {
       const error = await response.text();
-      throw new Error(`VibeVoice TTS error: ${response.status} - ${error}`);
+      throw new Error(`Qwen3 TTS error: ${response.status} - ${error}`);
     }
 
     const arrayBuffer = await response.arrayBuffer();
@@ -225,11 +203,14 @@ class VibeVoiceProvider implements TTSProvider {
 
   async healthCheck(): Promise<boolean> {
     try {
-      const response = await fetch(`${this.config.serverUrl}/base_tts/?text=test`, {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 1000);
+      const response = await fetch(`${this.config.serverUrl}/v1/models`, {
         method: "GET",
-        signal: AbortSignal.timeout(5000),
+        signal: controller.signal,
       });
-      return response.status !== 404;
+      clearTimeout(timeout);
+      return response.ok;
     } catch {
       return false;
     }
@@ -240,16 +221,16 @@ class VibeVoiceProvider implements TTSProvider {
   }
 }
 
-let provider: VibeVoiceProvider | null = null;
+let provider: Qwen3Provider | null = null;
 
 const plugin: WOPRPlugin = {
-  name: "voice-vibevoice",
+  name: "voice-qwen3-tts",
   version: "1.0.0",
-  description: "Microsoft VibeVoice TTS",
+  description: "Qwen3-TTS by Alibaba Cloud",
 
   async init(ctx: WOPRPluginContext) {
-    const config = ctx.getConfig<VibeVoiceConfig>();
-    provider = new VibeVoiceProvider(config);
+    const config = ctx.getConfig<Qwen3Config>();
+    provider = new Qwen3Provider(config);
 
     try {
       provider.validateConfig();
@@ -257,12 +238,12 @@ const plugin: WOPRPlugin = {
       if (healthy) {
         await provider.fetchVoices();
         ctx.registerTTSProvider(provider);
-        ctx.log.info(`VibeVoice TTS registered (${provider["config"].serverUrl})`);
+        ctx.log.info(`Qwen3 TTS registered (${provider["config"].serverUrl})`);
       } else {
-        ctx.log.warn(`VibeVoice server not reachable at ${provider["config"].serverUrl}`);
+        ctx.log.warn(`Qwen3 server not reachable at ${provider["config"].serverUrl}`);
       }
     } catch (err) {
-      ctx.log.error(`Failed to init VibeVoice TTS: ${err}`);
+      ctx.log.error(`Failed to init Qwen3 TTS: ${err}`);
     }
   },
 
