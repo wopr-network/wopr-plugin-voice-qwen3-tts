@@ -30,5 +30,24 @@
   },
   "type": "module",
   "types": "dist/index.d.ts",
-  "version": "1.0.0"
+  "version": "1.0.0",
+  "wopr": {
+    "plugin": {
+      "category": "voice",
+      "description": "Qwen3-TTS by Alibaba Cloud (beats ElevenLabs)",
+      "install": [
+        {
+          "image": "groxaxo/qwen3-tts-openai-fastapi",
+          "kind": "docker",
+          "label": "Pull Qwen3-TTS server",
+          "tag": "latest"
+        }
+      ],
+      "name": "voice-qwen3-tts",
+      "requires": {
+        "docker": ["groxaxo/qwen3-tts-openai-fastapi:latest"]
+      },
+      "type": "tts"
+    }
+  }
 }
