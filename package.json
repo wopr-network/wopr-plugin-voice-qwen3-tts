@@ -1,53 +1,114 @@
 {
-  "author": "",
-  "description": "WOPR TTS plugin for Qwen3-TTS (OpenAI-compatible)",
-  "devDependencies": {
-    "@biomejs/biome": "^2.3.14",
-    "@types/node": "^25.1.0",
-    "typescript": "^5.3.0",
-    "vitest": "^2.0.0"
-  },
-  "keywords": [
-    "wopr",
-    "plugin",
-    "tts",
-    "qwen3",
-    "voice",
-    "speech"
-  ],
-  "license": "MIT",
-  "main": "dist/index.js",
-  "name": "wopr-plugin-voice-qwen3-tts",
-  "scripts": {
-    "build": "tsc",
-    "check": "biome check src/ && tsc --noEmit",
-    "clean": "rm -rf dist",
-    "format": "biome format --write src/",
-    "lint": "biome check src/",
-    "lint:fix": "biome check --fix src/",
-    "test": "vitest run",
-    "test:watch": "vitest"
-  },
-  "type": "module",
-  "types": "dist/index.d.ts",
-  "version": "1.0.0",
-  "wopr": {
-    "plugin": {
-      "category": "voice",
-      "description": "Qwen3-TTS by Alibaba Cloud (beats ElevenLabs)",
-      "install": [
-        {
-          "image": "groxaxo/qwen3-tts-openai-fastapi",
-          "kind": "docker",
-          "label": "Pull Qwen3-TTS server",
-          "tag": "latest"
-        }
-      ],
-      "name": "voice-qwen3-tts",
-      "requires": {
-        "docker": ["groxaxo/qwen3-tts-openai-fastapi:latest"]
-      },
-      "type": "tts"
-    }
-  }
+	"author": "",
+	"description": "WOPR TTS plugin for Qwen3-TTS (OpenAI-compatible)",
+	"dependencies": {
+		"@wopr-network/plugin-types": "^0.2.1"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.3.14",
+		"@types/node": "^25.1.0",
+		"typescript": "^5.3.0",
+		"vitest": "^2.0.0"
+	},
+	"files": [
+		"dist"
+	],
+	"keywords": [
+		"wopr",
+		"plugin",
+		"tts",
+		"qwen3",
+		"voice",
+		"speech"
+	],
+	"license": "MIT",
+	"main": "dist/index.js",
+	"name": "@wopr-network/wopr-plugin-voice-qwen3-tts",
+	"publishConfig": {
+		"access": "public"
+	},
+	"scripts": {
+		"build": "tsc",
+		"check": "biome check . && tsc --noEmit",
+		"clean": "rm -rf dist",
+		"format": "biome format --write .",
+		"lint": "biome check .",
+		"lint:fix": "biome check --fix .",
+		"test": "vitest run",
+		"test:watch": "vitest"
+	},
+	"type": "module",
+	"types": "dist/index.d.ts",
+	"version": "1.0.0",
+	"wopr": {
+		"plugin": {
+			"category": "voice",
+			"configSchema": {
+				"description": "Configure the Qwen3-TTS server connection",
+				"fields": [
+					{
+						"default": "http://qwen3-tts:8880",
+						"description": "URL of your Qwen3-TTS server",
+						"label": "Server URL",
+						"name": "serverUrl",
+						"placeholder": "http://qwen3-tts:8880",
+						"type": "text"
+					},
+					{
+						"default": "af_sarah",
+						"description": "Default voice ID",
+						"label": "Default Voice",
+						"name": "voice",
+						"placeholder": "af_sarah",
+						"type": "text"
+					},
+					{
+						"default": "qwen-tts",
+						"description": "TTS model name",
+						"label": "Model",
+						"name": "model",
+						"placeholder": "qwen-tts",
+						"type": "text"
+					}
+				],
+				"title": "Qwen3-TTS Configuration"
+			},
+			"description": "Qwen3-TTS by Alibaba Cloud (beats ElevenLabs)",
+			"icon": "🧠",
+			"install": [
+				{
+					"image": "groxaxo/qwen3-tts-openai-fastapi",
+					"kind": "docker",
+					"label": "Pull Qwen3-TTS server",
+					"tag": "latest"
+				}
+			],
+			"lifecycle": {
+				"shutdownBehavior": "graceful"
+			},
+			"name": "voice-qwen3-tts",
+			"provides": {
+				"capabilities": [
+					{
+						"displayName": "Qwen3-TTS",
+						"id": "qwen3-tts",
+						"type": "tts"
+					}
+				]
+			},
+			"requires": {
+				"docker": [
+					"groxaxo/qwen3-tts-openai-fastapi:latest"
+				]
+			},
+			"tags": [
+				"tts",
+				"qwen3",
+				"voice",
+				"local",
+				"self-hosted"
+			],
+			"type": "tts"
+		}
+	}
 }
