@@ -42,7 +42,7 @@ interface VoicePluginMetadata {
 
 interface TTSProvider {
 	readonly metadata: VoicePluginMetadata;
-	readonly voices: Voice[];
+	readonly voices: readonly Voice[];
 	synthesize(text: string, options?: TTSOptions): Promise<TTSSynthesisResult>;
 	healthCheck?(): Promise<boolean>;
 	shutdown?(): Promise<void>;
@@ -121,7 +121,7 @@ export class Qwen3Provider implements TTSProvider {
 		emoji: "🗣️",
 	};
 
-	readonly voices: Voice[] = [
+	private _voices: Voice[] = [
 		{
 			id: "Vivian",
 			name: "Vivian",
@@ -187,6 +187,10 @@ export class Qwen3Provider implements TTSProvider {
 		},
 	];
 
+	get voices(): readonly Voice[] {
+		return this._voices;
+	}
+
 	private config: Required<Qwen3Config>;
 	private dynamicVoices: Voice[] = [];
 
@@ -227,7 +231,7 @@ export class Qwen3Provider implements TTSProvider {
 						...this.voices.filter((v) => !dynamicIds.has(v.id)),
 						...this.dynamicVoices,
 					];
-					(this.voices as Voice[]) = merged;
+					this._voices = merged;
 				}
 			}
 		} catch {
@@ -260,7 +264,7 @@ export class Qwen3Provider implements TTSProvider {
 				"Content-Type": "application/json",
 			},
 			body: JSON.stringify(requestBody),
-			signal: AbortSignal.timeout(3000),
+			signal: AbortSignal.timeout(30000),
 		});
 
 		if (!response.ok) {
@@ -269,14 +273,22 @@ export class Qwen3Provider implements TTSProvider {
 		}
 
 		const arrayBuffer = await response.arrayBuffer();
-		const wavBuffer = Buffer.from(arrayBuffer);
+		const rawBuffer = Buffer.from(arrayBuffer);
 
-		const { pcm, sampleRate } = wavToPcm(wavBuffer);
+		if (this.config.responseFormat === "pcm_s16le") {
+			const { pcm, sampleRate } = wavToPcm(rawBuffer);
+			return {
+				audio: pcm,
+				format: "pcm_s16le",
+				sampleRate,
+				durationMs: Date.now() - startTime,
+			};
+		}
 
 		return {
-			audio: pcm,
-			format: "pcm_s16le",
-			sampleRate,
+			audio: rawBuffer,
+			format: this.config.responseFormat as TTSSynthesisResult["format"],
+			sampleRate: 24000,
 			durationMs: Date.now() - startTime,
 		};
 	}
@@ -346,10 +358,10 @@ const plugin: WOPRPlugin = {
 				},
 				{
 					name: "speed",
-					type: "text",
+					type: "number",
 					label: "Speed",
 					placeholder: "1.0",
-					default: "1.0",
+					default: 1.0,
 					description: "Playback speed (0.25-4.0)",
 				},
 			],
