@@ -70,7 +70,7 @@ describe("Qwen3-TTS Integration", () => {
 
 	it("should have default voices defined", () => {
 		expect(provider.voices.length).toBeGreaterThan(0);
-		expect(provider.voices.find((v) => v.id === "af_sarah")).toBeDefined();
+		expect(provider.voices.find((v) => v.id === "Vivian")).toBeDefined();
 	});
 
 	it("should validate config", () => {

@@ -50,15 +50,24 @@ interface TTSProvider {
 }
 
 interface Qwen3Config {
+	/** Server URL (e.g., http://qwen3-tts:8880) */
 	serverUrl?: string;
+	/** Default voice name */
 	voice?: string;
-	model?: string;
+	/** Playback speed (0.25-4.0) */
+	speed?: number;
+	/** Default language code */
+	language?: string;
+	/** Response format: mp3, wav, pcm, opus, aac, flac */
+	responseFormat?: string;
 }
 
 const DEFAULT_CONFIG: Required<Qwen3Config> = {
-	serverUrl: process.env.QWEN3_URL || "http://qwen3-tts:8880",
-	voice: process.env.QWEN3_VOICE || "af_sarah",
-	model: process.env.QWEN3_MODEL || "qwen-tts",
+	serverUrl: process.env.QWEN3_TTS_URL || "http://qwen3-tts:8880",
+	voice: process.env.QWEN3_TTS_VOICE || "Vivian",
+	speed: 1.0,
+	language: "en",
+	responseFormat: "wav",
 };
 
 export function parseWavSampleRate(buffer: Buffer): number {
@@ -99,22 +108,83 @@ export class Qwen3Provider implements TTSProvider {
 		name: "qwen3-tts",
 		version: "1.0.0",
 		type: "tts",
-		description: "Qwen3-TTS by Alibaba Cloud",
+		description:
+			"Qwen3-TTS with voice cloning, voice design, and multilingual support",
 		capabilities: [
 			"voice-selection",
 			"voice-cloning",
 			"voice-design",
 			"multilingual",
+			"streaming",
 		],
 		local: true,
-		emoji: "🧠",
+		emoji: "🗣️",
 	};
 
 	readonly voices: Voice[] = [
-		{ id: "af_sarah", name: "Sarah", language: "en", gender: "female" },
-		{ id: "am_michael", name: "Michael", language: "en", gender: "male" },
-		{ id: "bf_emma", name: "Emma", language: "en", gender: "female" },
-		{ id: "bm_daniel", name: "Daniel", language: "en", gender: "male" },
+		{
+			id: "Vivian",
+			name: "Vivian",
+			language: "zh",
+			gender: "female",
+			description: "Bright, slightly edgy young female",
+		},
+		{
+			id: "Serena",
+			name: "Serena",
+			language: "zh",
+			gender: "female",
+			description: "Warm, gentle young female",
+		},
+		{
+			id: "Ryan",
+			name: "Ryan",
+			language: "en",
+			gender: "male",
+			description: "Dynamic male with strong rhythmic drive",
+		},
+		{
+			id: "Aiden",
+			name: "Aiden",
+			language: "en",
+			gender: "male",
+			description: "Sunny American male with clear midrange",
+		},
+		{
+			id: "Dylan",
+			name: "Dylan",
+			language: "zh",
+			gender: "male",
+			description: "Youthful Beijing male, clear natural timbre",
+		},
+		{
+			id: "Eric",
+			name: "Eric",
+			language: "zh",
+			gender: "male",
+			description: "Lively Chengdu male, slightly husky",
+		},
+		{
+			id: "Uncle_Fu",
+			name: "Uncle Fu",
+			language: "zh",
+			gender: "male",
+			description: "Seasoned male, low mellow timbre",
+		},
+		{
+			id: "Ono_Anna",
+			name: "Ono Anna",
+			language: "ja",
+			gender: "female",
+			description: "Playful Japanese female, light nimble timbre",
+		},
+		{
+			id: "Sohee",
+			name: "Sohee",
+			language: "ko",
+			gender: "female",
+			description: "Warm Korean female with rich emotion",
+		},
 	];
 
 	private config: Required<Qwen3Config>;
@@ -172,11 +242,16 @@ export class Qwen3Provider implements TTSProvider {
 		const startTime = Date.now();
 		const voice = options?.voice || this.config.voice;
 
+		const speed = options?.speed ?? this.config.speed;
+		const lang = this.config.language;
+		const model = lang && lang !== "en" ? `tts-1-hd-${lang}` : "tts-1-hd";
+
 		const requestBody = {
 			input: text,
 			voice: voice,
-			model: this.config.model,
-			response_format: "wav",
+			model: model,
+			response_format: this.config.responseFormat,
+			speed: speed,
 		};
 
 		const response = await fetch(`${this.config.serverUrl}/v1/audio/speech`, {
@@ -257,17 +332,25 @@ const plugin: WOPRPlugin = {
 					name: "voice",
 					type: "text",
 					label: "Default Voice",
-					placeholder: "af_sarah",
-					default: "af_sarah",
-					description: "Default voice ID",
+					placeholder: "Vivian",
+					default: "Vivian",
+					description: "Default voice ID (e.g. Vivian, Ryan, Serena)",
 				},
 				{
-					name: "model",
+					name: "language",
 					type: "text",
-					label: "Model",
-					placeholder: "qwen-tts",
-					default: "qwen-tts",
-					description: "TTS model name",
+					label: "Language",
+					placeholder: "en",
+					default: "en",
+					description: "Language code (e.g. en, zh, ja, ko)",
+				},
+				{
+					name: "speed",
+					type: "text",
+					label: "Speed",
+					placeholder: "1.0",
+					default: "1.0",
+					description: "Playback speed (0.25-4.0)",
 				},
 			],
 		});
