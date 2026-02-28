@@ -2,7 +2,7 @@
 	"author": "",
 	"description": "WOPR TTS plugin for Qwen3-TTS (OpenAI-compatible)",
 	"dependencies": {
-		"@wopr-network/plugin-types": "^0.2.1"
+		"@wopr-network/plugin-types": "^0.7.1"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.3.14",
@@ -24,6 +24,9 @@
 	"license": "MIT",
 	"main": "dist/index.js",
 	"name": "@wopr-network/wopr-plugin-voice-qwen3-tts",
+	"peerDependencies": {
+		"zod": "^4.3.6"
+	},
 	"publishConfig": {
 		"access": "public"
 	},
